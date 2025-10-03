@@ -1,0 +1,14 @@
+{
+    "display_name": "right_click_message_menu",
+    "loading_order": 1,
+    "requires": [],
+    "optional": [],
+    "minimum_client_version": "1.13.1",
+    "js": "index.js",
+    "css": "style.css",
+    "author": "qvink",
+    "version": "0.0.1",
+    "homePage": "https://github.com/qvink/SillyTavern-RightClickMessageMenu.git",
+    "i18n": {
+    }
+}

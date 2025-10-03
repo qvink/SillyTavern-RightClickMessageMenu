@@ -1,0 +1,34 @@
+<div class="right_click_message_menu_settings">
+    <div class="inline-drawer">
+
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <div class="flex-container alignitemscenter margin0">
+                <b title="aka: Message Summarize">Right Click Message Menu</b>
+            </div>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+
+        <div class="inline-drawer-content">
+            <div>
+                <label style="padding-left: 10px">
+                    <span>Menu mode</span>
+                    <select id="short_term_role" class="text_pole inline_setting">
+                        <option value="disabled">Disabled</option>
+                        <option value="vertical">Vertical</option>
+                        <option value="horizontal">Horizontal</option>
+                    </select>
+                </label>
+            </div>
+
+            <label class="checkbox_label" title="The max width in pixels the menu will have when in horizontal mode">
+                <input id="max_width" class="text_pole widthUnset inline_setting" type="number" min="0" max="9999" />
+                <span>Max Width (horizontal)</span>
+            </label>
+
+            <label class="checkbox_label" title="Additional extension outputs for debugging">
+                <input id="debug_mode" type="checkbox">
+                <span>Debug Mode</span>
+            </label>
+        </div>
+    </div>
+</div>

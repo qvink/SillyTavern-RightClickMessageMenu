@@ -1,0 +1,21 @@
+
+.right_click_message_menu_vertical {
+    text-align: left;
+    padding: 15px;
+}
+
+.right_click_message_menu_horizontal {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.right_click_message_menu_item {
+    cursor: pointer;
+}
+
+.right_click_message_menu_vertical .right_click_message_menu_item i {
+    height: unset;
+    width: 30px;
+}
+
