@@ -277,9 +277,10 @@ function parse_tooltip(tooltip) {
 
 function init_menu() {
     // If the menu already exists
+    debug("Initializing menu")
     $menu = $(`#${menu_id}`)
     if ($menu.length === 0) {  // not initialized yet
-        $menu = $(`<div id="${menu_id}" class="options-content popup" style="position: absolute; width: unset;"></div>`)
+        $menu = $(`<div id="${menu_id}" class="options-content popup" style="position: absolute; width: unset; display: none;"></div>`)
         $('body').append($menu)
     } else {  // already initialized - clear it
         $menu.empty()
@@ -314,13 +315,14 @@ function init_menu() {
             let {text, title} = parse_tooltip(tooltip)
             $menu_item = $(`<div class="flex-container list-group-item ${horizontal_item_class}"><i class="${icon_classes.join(" ")}"></i><span title="${title}">${text}</span></div>`)
         } else {  // horizontal
-            $menu_item = $(`<div><div class="mes_button ${icon_classes.join(" ")}" title="${tooltip}"></div></div>`)
+            $menu_item = $(`<div class="mes_button ${icon_classes.join(" ")}" title="${tooltip}"></div>`)
         }
 
         // When this menu item is clicked, we need to simulate a click on the corresponding message button
         $menu_item.on('click', () => {
             let message_id = $menu.data('message_id')  // we stored the message ID when the menu was shown
             let message_button = $(`div[mesid="${message_id}"] .extraMesButtons .${[...button.classList].join('.')}`)
+            debug("Clicking item: ", message_id, message_button)
             message_button.click()
             message_button.trigger('pointerup')  // some buttons use the pointerup event instead
         })
@@ -332,7 +334,7 @@ function init_menu() {
     // When you right-click a message, show the context menu
     $(document).on('contextmenu', 'div.mes_block div.mes_text', function(e) {
         if (get_settings('menu_mode') === 'disabled') return
-
+        debug("Showing menu")
         e.preventDefault();
         $menu.css({
           top: e.pageY + "px",
@@ -350,6 +352,11 @@ function init_menu() {
         // Also, some items may need to be removed (some messages hide certain buttons)
         let $menu_items = $menu.find('div')
         let $message_buttons = $(message_block).find(`.extraMesButtons .mes_button`)
+
+        if ($menu_items.length !== $message_buttons.length) {
+            debug("Menu item length mismatch: ", $menu_items.length, "!=", $message_buttons.length)
+        }
+
         for (let i=0; i<$menu_items.length; i++) {
             let $item = $($menu_items[i])
             let $button = $($message_buttons[i])  // at the same index
@@ -366,6 +373,8 @@ function init_menu() {
     // Hide menu on click anywhere else
     $(document).on("click", function() {
         if (get_settings('menu_mode') === 'disabled') return
+        if (!$menu.is(":visible")) return
+        debug("Hiding menu")
         $menu.hide();
     });
 }
