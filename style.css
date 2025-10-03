@@ -19,3 +19,11 @@
     width: 30px;
 }
 
+/*
+For hiding the regular message buttons.
+After you edit a message, ST will try to show the message buttons again.
+This keeps them hidden.
+ */
+.force_hidden {
+    display: none !important;
+}
