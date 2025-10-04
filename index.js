@@ -257,6 +257,7 @@ function parse_tooltip(tooltip) {
     // In vertical mode, we want to have some short text to use for the menu text.
     // For some default buttons, we have a hard-coded mapping.
     // For others, many tooltips are long so we will instead parse out any text inside parentheses, use that as a tooltip, and use any remaining text as the item text.
+    if (!tooltip) return {text: "", title: ""}
 
     let text = tooltip
     let title = ""
@@ -266,24 +267,19 @@ function parse_tooltip(tooltip) {
     if (mapped) {
         text = mapped
         title = tooltip
-    } else {  // otherwise, parse any parentheses
-        let idx = tooltip.search(/\(.*\)\s*$/)
+    } else {  // otherwise, attempt to parse out some good text
+        let idx = tooltip.search(/(\s-\s)|(\(.*\)\s*)$/)
         if (idx !== -1) {
-            text = tooltip.slice(0, idx)
-            title = tooltip.slice(idx).replace(/[()]/g, '')
+            text = tooltip.slice(0, idx).trim()
+            title = tooltip.slice(idx).replace(/\s-\s|^\(|\)$/g, '')
         }
     }
 
     return {text: text, title: title}
 }
-function get_buttons($message_div=null) {
+function get_buttons($message_div) {
     // Return a jQuery selection of message buttons on the given message div.
-    // If the message div is null, instead return the buttons on the message template.
-    if ($message_div === null) {
-        $message_div = $("#message_template")
-    } else {
-        $message_div = $($message_div)
-    }
+    $message_div = $($message_div)
 
     let $buttons = $message_div.find(".mes_buttons .mes_button:not(.extraMesButtonsHint)")
 
@@ -302,21 +298,6 @@ function get_buttons($message_div=null) {
     return $buttons
 
 }
-function click_message_button(message_id, button_index) {
-    // Simulate a click on a message button on a particular message.
-    let message_div = $(`div[mesid="${message_id}"]`)
-    let $buttons = get_buttons(message_div)
-
-    if (button_index >= $buttons.length) {
-        debug(`Failed to click button index ${button_index}. Only found ${$buttons.length} buttons.`)
-        return
-    }
-
-    debug(`Clicking button ${button_index} on message ${message_id}`)
-    let $button = $($buttons[button_index])
-    $button.click()
-    $button.trigger('pointerup')  // some buttons use the pointerup event instead
-}
 
 function toggle_message_buttons() {
     // Show/hide all message buttons
@@ -328,9 +309,9 @@ function toggle_message_buttons() {
     }
 
 }
-function init_menu() {
+function update_menu(message_div) {
     // If the menu already exists
-    debug("Initializing menu")
+    debug("Updating menu")
     $menu = $(`#${menu_id}`)
     if ($menu.length === 0) {  // not initialized yet
         $menu = $(`<div id="${menu_id}" class="options-content popup" style="position: absolute; width: unset; display: none;"></div>`)
@@ -345,8 +326,7 @@ function init_menu() {
     // what menu mode we are using
     let menu_mode = get_settings('menu_mode')
 
-    if (menu_mode === 'disabled') {  // If disabled, remove the menu and return
-        $menu.remove()
+    if (menu_mode === 'disabled') {  // If disabled, do nothing
         return
     } else if (menu_mode === 'horizontal') {
         $menu.css('max-width', `${get_settings('max_width_horizontal')}px`)  // set max width if in horizontal mode
@@ -356,80 +336,71 @@ function init_menu() {
         $menu.addClass(vertical_menu_class)  // set vertical class
     }
 
-    // Get all buttons from the message menu template.
-    let $buttons = get_buttons()
+    // Get all buttons on the message
+    let $buttons = get_buttons(message_div)
 
-    // Add those buttons from the template to the context menu
-    for (let i=0; i<$buttons.length; i++) {
-        let button = $buttons[i]
+    // Add those buttons from to the context menu
+    for (let button of $buttons) {
+        let $button = $(button)
+
+        // Don't add the button if it's hidden on the message
+        if ($button.css('display') === 'none') continue
+
         let icon_classes = [...button.classList].filter(cls => cls.startsWith('fa-'))  // get any FA classes (the icon)
-        let tooltip = $(button).prop('title')  // the tooltip on the button
+        let $icon_svg = $button.find("svg")  // icons might have been added using an svg
+        let tooltip = $button.prop('title') || $button.attr('data-sttt--title')  // the tooltip on the button (with compatability for the tooltips ext)
 
         let $menu_item;
         if (menu_mode === 'vertical') {
             let {text, title} = parse_tooltip(tooltip)
-            $menu_item = $(`<div class="flex-container list-group-item ${horizontal_item_class}"><i class="${icon_classes.join(" ")}"></i><span title="${title}">${text}</span></div>`)
+            $menu_item = $(`<div class="flex-container list-group-item ${horizontal_item_class}"><span title="${title}">${text}</span></div>`)
         } else {  // horizontal
-            $menu_item = $(`<div class="mes_button ${icon_classes.join(" ")}" title="${tooltip}"></div>`)
+            $menu_item = $(`<div class="mes_button" title="${tooltip}"></div>`)
         }
 
-        // When this menu item is clicked, we need to simulate a click on the corresponding message button
+
+        if ($icon_svg.length) {
+             $menu_item.prepend($icon_svg.clone())
+        } else {  // regular fa icon
+             $menu_item.prepend($(`<i class="${icon_classes.join(" ")}"></i>`))
+        }
+
+
+        // When this menu item is clicked, simulate a click on the corresponding message button
         $menu_item.on('click', () => {
             let message_id = $menu.data('message_id')  // we stored the message ID when the menu was shown
-            click_message_button(message_id, i)
+            $button.click()
+            $button.trigger('pointerup')  // some buttons use the pointerup event instead
         })
 
         $menu.append($menu_item)  // add this item to the menu
     }
+}
 
-
+function init_menu() {
     // When you right-click a message, show the context menu
     $(document).on('contextmenu', 'div.mes_block div.mes_text', function(e) {
         if (get_settings('menu_mode') === 'disabled') return
-        debug("Showing menu")
         e.preventDefault();
-        $menu.css({
-          top: e.pageY + "px",
-          left: e.pageX + "px",
-        }).show();
 
         let message_block = e.currentTarget.parentNode
         let message = message_block.parentNode
 
-        // When the menu is opened, we need a way to tell the items which message was clicked.
-        // We can do this by storing the message id in the data attribute of the menu
-        const message_id = $(message).attr("mesid");
-        $menu.data("message_id", message_id)
-
-        // Also, some items may need to be removed (some messages hide certain buttons)
-        let $menu_items = $menu.find('div')
-        let $message_buttons = get_buttons(message_block)
-
-        if ($menu_items.length !== $message_buttons.length) {
-            debug("Menu item length mismatch: ", $menu_items.length, "!=", $message_buttons.length)
-            debug($menu_items)
-            debug($message_buttons)
-        }
-
-        for (let i=0; i<$menu_items.length; i++) {
-            let $item = $($menu_items[i])
-            let $button = $($message_buttons[i])  // at the same index
-            if ($button.css('display') === 'none') {
-                $item.hide()
-            } else {
-                $item.show()
-            }
-        }
-
+        update_menu(message)
+        $menu.css({
+          top: e.pageY + "px",
+          left: e.pageX + "px",
+        })
+        $menu.show();
     });
 
     // Clicking anywhere will make the context menu disappear
     // Hide menu on click anywhere else
     $(document).on("click", function() {
         if (get_settings('menu_mode') === 'disabled') return
-        if (!$menu.is(":visible")) return
+        if (!$menu?.is(":visible")) return
         debug("Hiding menu")
-        $menu.hide();
+        $menu.hide()
     });
 }
 
@@ -446,13 +417,12 @@ jQuery(async function () {
     // Load settings
     initialize_settings();
     await load_settings_html();
-    bind_setting('#short_term_role', 'menu_mode', 'text', init_menu);
-    bind_setting('#max_width', 'max_width_horizontal', 'number', init_menu);
+    bind_setting('#short_term_role', 'menu_mode', 'text');
+    bind_setting('#max_width', 'max_width_horizontal', 'number');
     bind_setting('#hide_message_buttons', 'hide_message_buttons', 'boolean', toggle_message_buttons);
     bind_setting('#debug_mode', 'debug_mode', 'boolean');
     refresh_settings()
 
-    // init
     init_menu()
     toggle_message_buttons()
 });
