@@ -298,6 +298,27 @@ function get_buttons($message_div) {
     return $buttons
 
 }
+function set_menu_position(mouse_x, mouse_y) {
+    // Given the mouse position, calculate the menu position (to keep it within the screen)
+    let x_pos = mouse_x
+    let y_pos = mouse_y
+    let rect = $menu[0].getBoundingClientRect()
+
+    // If the menu would overflow to the right, instead appear on the left
+    if (x_pos + rect.width > window.screen.width) {
+        x_pos = mouse_x - rect.width
+    }
+
+    // If the menu would overflow off the bottom, instead appear above
+    if (y_pos + rect.height > window.screen.height) {
+        y_pos = mouse_y - rect.height
+    }
+
+    $menu.css({
+        left: x_pos + "px",
+        top: y_pos + "px"
+    })
+}
 
 function toggle_message_buttons() {
     // Show/hide all message buttons
@@ -310,7 +331,7 @@ function toggle_message_buttons() {
 
 }
 function update_menu(message_div) {
-    // If the menu already exists
+    // Update the menu from the buttons on the given message div
     debug("Updating menu")
     $menu = $(`#${menu_id}`)
     if ($menu.length === 0) {  // not initialized yet
@@ -387,10 +408,7 @@ function init_menu() {
         let message = message_block.parentNode
 
         update_menu(message)
-        $menu.css({
-          top: e.pageY + "px",
-          left: e.pageX + "px",
-        })
+        set_menu_position(e.pageX, e.pageY)
         $menu.show();
     });
 
