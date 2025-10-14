@@ -296,7 +296,12 @@ function get_buttons($message_div) {
     }
 
     return $buttons
-
+}
+function get_edit_buttons($message_div) {
+        // Return a jQuery selection of message buttons on the given message div.
+    $message_div = $($message_div)
+    let buttons = $message_div.find(".mes_edit_buttons .menu_button").toArray()
+    return $(buttons)
 }
 function set_menu_position(mouse_x, mouse_y) {
     // Given the mouse position, calculate the menu position (to keep it within the screen)
@@ -324,13 +329,13 @@ function toggle_message_buttons() {
     // Show/hide all message buttons
     let hide = get_settings('hide_message_buttons')
     if (hide) {
-        $('.mes_buttons').addClass(hide_buttons_class)
+        $('.mes_buttons, .mes_edit_buttons').addClass(hide_buttons_class)
     } else {
-        $('.mes_buttons').removeClass(hide_buttons_class)
+        $('.mes_buttons, .mes_edit_buttons').removeClass(hide_buttons_class)
     }
 
 }
-function update_menu(message_div) {
+function update_menu(message_div, edit=false) {
     // Update the menu from the buttons on the given message div
     debug("Updating menu")
     $menu = $(`#${menu_id}`)
@@ -358,9 +363,14 @@ function update_menu(message_div) {
     }
 
     // Get all buttons on the message
-    let $buttons = get_buttons(message_div)
+    let $buttons;
+    if (edit) {
+        $buttons = get_edit_buttons(message_div);
+    } else {
+        $buttons = get_buttons(message_div);
+    }
 
-    // Add those buttons from to the context menu
+    // Add those buttons to the context menu
     for (let button of $buttons) {
         let $button = $(button)
 
@@ -379,17 +389,14 @@ function update_menu(message_div) {
             $menu_item = $(`<div class="mes_button" title="${tooltip}"></div>`)
         }
 
-
         if ($icon_svg.length) {
              $menu_item.prepend($icon_svg.clone())
         } else {  // regular fa icon
              $menu_item.prepend($(`<i class="${icon_classes.join(" ")}"></i>`))
         }
 
-
         // When this menu item is clicked, simulate a click on the corresponding message button
         $menu_item.on('click', () => {
-            let message_id = $menu.data('message_id')  // we stored the message ID when the menu was shown
             $button.click()
             $button.trigger('pointerup')  // some buttons use the pointerup event instead
         })
@@ -397,7 +404,6 @@ function update_menu(message_div) {
         $menu.append($menu_item)  // add this item to the menu
     }
 }
-
 function init_menu() {
     // When you right-click a message, show the context menu
     $(document).on('contextmenu', 'div.mes_block div.mes_text', function(e) {
@@ -407,7 +413,9 @@ function init_menu() {
         let message_block = e.currentTarget.parentNode
         let message = message_block.parentNode
 
-        update_menu(message)
+        // check if the message is currently being edited
+        let textbox = $(message_block).find('textarea')
+        update_menu(message, textbox.length > 0)
         set_menu_position(e.pageX, e.pageY)
         $menu.show();
     });
