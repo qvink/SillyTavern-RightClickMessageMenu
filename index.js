@@ -414,7 +414,7 @@ function init_menu() {
         let message = message_block.parentNode
 
         // check if the message is currently being edited
-        let textbox = $(message_block).find('textarea')
+        let textbox = $(message_block).find('textarea.edit_textarea')
         update_menu(message, textbox.length > 0)
         set_menu_position(e.pageX, e.pageY)
         $menu.show();
