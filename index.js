@@ -1,14 +1,4 @@
-import {
-    getStringHash,
-    debounce,
-    copyText,
-    trimToEndSentence,
-    download,
-    parseJsonFile,
-    stringToRange,
-    waitUntilCondition
-} from '../../../utils.js';
-import {saveSettingsDebounced, chat_metadata} from '../../../../script.js';
+import {saveSettingsDebounced, setEditedMessageId} from '../../../../script.js';
 import { getContext, extension_settings} from '../../../extensions.js';
 import { t, translate } from '../../../i18n.js';
 
@@ -25,7 +15,7 @@ const default_settings = {
     menu_mode: 'vertical',  // default vertical
     debug_mode: false,
     max_width_horizontal: 220,
-    hide_message_buttons: false
+    hide_message_buttons: false,
 };
 const settings_ui_map = {}  // map of settings to UI elements
 
@@ -282,14 +272,23 @@ function get_buttons($message_div) {
     $message_div = $($message_div)
 
     let $buttons = $message_div.find(".mes_buttons .mes_button:not(.extraMesButtonsHint)")
-
-    // Always put the edit button first
     let array = $buttons.toArray($buttons)
+
+    // Grab the edit button and delete button
     let $edit = $buttons.filter(".mes_edit")
+
+    // The default behavior doesn't work when not in edit mode so we gotta trick it using setEditedMessageId
+    let $delete = $message_div.find(".mes_edit_buttons .mes_edit_delete")
+    let id = $message_div.attr('mesid')
+    $delete.on('click', () => {
+        setEditedMessageId(Number(id))
+    })
+
     if ($edit.length > 0) {
         let at_index = array.indexOf($edit)
         array.splice(at_index, 1);
-        array.splice(0, 0, $edit[0]);
+        array.splice(0, 0, $edit[0]);  // edit button goes first
+        array.push($delete[0])  // delete button goes last
         $buttons = $(array)
     } else {
         debug('Failed to located edit button: ', $buttons)
@@ -443,7 +442,7 @@ jQuery(async function () {
     // Load settings
     initialize_settings();
     await load_settings_html();
-    bind_setting('#short_term_role', 'menu_mode', 'text');
+    bind_setting('#menu_mode', 'menu_mode', 'text');
     bind_setting('#max_width', 'max_width_horizontal', 'number');
     bind_setting('#hide_message_buttons', 'hide_message_buttons', 'boolean', toggle_message_buttons);
     bind_setting('#debug_mode', 'debug_mode', 'boolean');
