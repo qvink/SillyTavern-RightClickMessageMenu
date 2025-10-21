@@ -403,20 +403,40 @@ function update_menu(message_div, edit=false) {
         $menu.append($menu_item)  // add this item to the menu
     }
 }
+
+function handle_interaction(e) {
+    if (get_settings('menu_mode') === 'disabled') return
+    e.preventDefault();
+
+    let message_block = e.currentTarget.parentNode
+    let message = message_block.parentNode
+
+    // check if the message is currently being edited
+    let textbox = $(message_block).find('textarea.edit_textarea')
+    update_menu(message, textbox.length > 0)
+    set_menu_position(e.pageX, e.pageY)
+    $menu.show();
+}
 function init_menu() {
     // When you right-click a message, show the context menu
     $(document).on('contextmenu', 'div.mes_block div.mes_text', function(e) {
-        if (get_settings('menu_mode') === 'disabled') return
-        e.preventDefault();
+        if (!get_settings('double_tap')) {
+            handle_interaction(e)
+        }
+    });
 
-        let message_block = e.currentTarget.parentNode
-        let message = message_block.parentNode
+    var last_tap = 0;
+    $(document).on('touchend', 'div.mes_block div.mes_text', function(e) {
+      let current_time = new Date().getTime();
+      let tap_length = current_time - last_tap;
 
-        // check if the message is currently being edited
-        let textbox = $(message_block).find('textarea.edit_textarea')
-        update_menu(message, textbox.length > 0)
-        set_menu_position(e.pageX, e.pageY)
-        $menu.show();
+      if (tap_length < 300 && tap_length > 0) {
+        if (get_settings('double_tap')) {
+            handle_interaction(e)
+        }
+      }
+
+      last_tap = current_time;
     });
 
     // Clicking anywhere will make the context menu disappear
@@ -445,6 +465,7 @@ jQuery(async function () {
     bind_setting('#menu_mode', 'menu_mode', 'text');
     bind_setting('#max_width', 'max_width_horizontal', 'number');
     bind_setting('#hide_message_buttons', 'hide_message_buttons', 'boolean', toggle_message_buttons);
+    bind_setting('#double_tap', 'double_tap', 'boolean');
     bind_setting('#debug_mode', 'debug_mode', 'boolean');
     refresh_settings()
 
