@@ -16,6 +16,8 @@ const default_settings = {
     debug_mode: false,
     max_width_horizontal: 220,
     hide_message_buttons: false,
+    double_tap: false,
+    long_press: false,
 };
 const settings_ui_map = {}  // map of settings to UI elements
 
@@ -304,9 +306,11 @@ function get_edit_buttons($message_div) {
 }
 function set_menu_position(mouse_x, mouse_y) {
     // Given the mouse position, calculate the menu position (to keep it within the screen)
+    let rect = $menu[0].getBoundingClientRect()
+    let location = get_settings('menu_location')
     let x_pos = mouse_x
     let y_pos = mouse_y
-    let rect = $menu[0].getBoundingClientRect()
+
 
     // If the menu would overflow to the right, instead appear on the left
     if (x_pos + rect.width > window.screen.width) {
@@ -404,47 +408,95 @@ function update_menu(message_div, edit=false) {
     }
 }
 
-function handle_interaction(e) {
+function handle_interaction(target, x, y) {
     if (get_settings('menu_mode') === 'disabled') return
-    e.preventDefault();
 
-    let message_block = e.currentTarget.parentNode
+    let message_block = target.parentNode
     let message = message_block.parentNode
 
     // check if the message is currently being edited
     let textbox = $(message_block).find('textarea.edit_textarea')
     update_menu(message, textbox.length > 0)
-    set_menu_position(e.pageX, e.pageY)
+    set_menu_position(x, y)
     $menu.show();
 }
 function init_menu() {
-    // When you right-click a message, show the context menu
-    $(document).on('contextmenu', 'div.mes_block div.mes_text', function(e) {
-        if (!get_settings('double_tap')) {
-            handle_interaction(e)
-        }
-    });
+    let selector = 'div.mes_block div.mes_text'
+    let context = getContext()
+    let is_mobile = context.isMobile()
 
-    var last_tap = 0;
-    $(document).on('touchend', 'div.mes_block div.mes_text', function(e) {
-      let current_time = new Date().getTime();
-      let tap_length = current_time - last_tap;
+    if (is_mobile) {
 
-      if (tap_length < 300 && tap_length > 0) {
-        if (get_settings('double_tap')) {
-            handle_interaction(e)
-        }
-      }
+        // On tap, handle long-press
+        let long_press_timer;
+        let long_press_triggered = false;
+        $(document).on('touchstart', selector, function (e) {
+            if (get_settings('menu_mode') === 'disabled') return
 
-      last_tap = current_time;
-    });
+            // we have to get these variables now because jQuery recycles the event object before the timeout can use it
+            let x = e.pageX
+            let y = e.pageY
+            let target = e.currentTarget
 
-    // Clicking anywhere will make the context menu disappear
-    // Hide menu on click anywhere else
-    $(document).on("click", function() {
-        if (get_settings('menu_mode') === 'disabled') return
+            // Otherwise, start handling long-press
+            long_press_timer = window.setTimeout(async () => {
+                long_press_triggered = true
+                if (get_settings('long_press')) {
+                    handle_interaction(target, x, y)
+                }
+            }, 500); // 500ms for long press
+        }).on('touchend', selector, function (e) {
+            clearTimeout(long_press_timer); // Clear the timer if touch ends or moves before it finishes
+        })
+
+        // double-tap handling
+        var last_tap = 0;
+        $(document).on('mouseup touchend', selector, function(e) {
+
+            if (long_press_triggered) {  // Prevent carry-over clicks after long press
+                e.preventDefault();
+                e.stopPropagation();
+                long_press_triggered = false;
+            }
+
+            // double-click handling
+            let current_time = new Date().getTime();
+            let tap_length = current_time - last_tap;
+            if (tap_length < 300 && tap_length > 0) {
+                if (get_settings('double_tap')) {
+                    handle_interaction(e.currentTarget, e.pageX, e.pageY)
+                }
+            }
+            last_tap = current_time;
+        });
+
+    } else {  // desktop
+
+        // Handle right-clicking
+        var last_right_click = 0;
+        $(document).on('contextmenu', selector, function(e) {
+            // double-right-click handling
+            let current_time = new Date().getTime();
+            let tap_length = current_time - last_right_click;
+
+            // double-right-click, don't prevent the default context menu
+            if (tap_length < 300 && tap_length > 0) {
+                $menu.hide()
+                debug("Double right-click")
+            } else {  // not a double-right-click. Prevent default and show menu.
+                e.preventDefault();
+                handle_interaction(e.currentTarget, e.pageX, e.pageY)
+            }
+
+            last_right_click = current_time;
+        });
+
+    }
+
+    // Clicking anywhere closes the menu
+    $(document).on('click', function() {
         if (!$menu?.is(":visible")) return
-        debug("Hiding menu")
+        if (get_settings('menu_mode') === 'disabled') return
         $menu.hide()
     });
 }
@@ -466,6 +518,7 @@ jQuery(async function () {
     bind_setting('#max_width', 'max_width_horizontal', 'number');
     bind_setting('#hide_message_buttons', 'hide_message_buttons', 'boolean', toggle_message_buttons);
     bind_setting('#double_tap', 'double_tap', 'boolean');
+    bind_setting('#long_press', 'long_press', 'boolean');
     bind_setting('#debug_mode', 'debug_mode', 'boolean');
     refresh_settings()
 
