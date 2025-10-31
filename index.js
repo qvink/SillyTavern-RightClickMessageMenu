@@ -423,75 +423,68 @@ function handle_interaction(target, x, y) {
 function init_menu() {
     let selector = 'div.mes_block div.mes_text'
     let context = getContext()
-    let is_mobile = context.isMobile()
 
-    if (is_mobile) {
+    // On tap, handle long-press
+    let long_press_timer;
+    let long_press_triggered = false;
+    $(document).on('touchstart', selector, function (e) {
+        if (get_settings('menu_mode') === 'disabled') return
 
-        // On tap, handle long-press
-        let long_press_timer;
-        let long_press_triggered = false;
-        $(document).on('touchstart', selector, function (e) {
-            if (get_settings('menu_mode') === 'disabled') return
+        // we have to get these variables now because jQuery recycles the event object before the timeout can use it
+        let x = e.pageX
+        let y = e.pageY
+        let target = e.currentTarget
 
-            // we have to get these variables now because jQuery recycles the event object before the timeout can use it
-            let x = e.pageX
-            let y = e.pageY
-            let target = e.currentTarget
-
-            // Otherwise, start handling long-press
-            long_press_timer = window.setTimeout(async () => {
-                long_press_triggered = true
-                if (get_settings('long_press')) {
-                    handle_interaction(target, x, y)
-                }
-            }, 500); // 500ms for long press
-        }).on('touchend', selector, function (e) {
-            clearTimeout(long_press_timer); // Clear the timer if touch ends or moves before it finishes
-        })
-
-        // double-tap handling
-        var last_tap = 0;
-        $(document).on('mouseup touchend', selector, function(e) {
-
-            if (long_press_triggered) {  // Prevent carry-over clicks after long press
-                e.preventDefault();
-                e.stopPropagation();
-                long_press_triggered = false;
+        // Otherwise, start handling long-press
+        long_press_timer = window.setTimeout(async () => {
+            long_press_triggered = true
+            if (get_settings('long_press')) {
+                handle_interaction(target, x, y)
             }
+        }, 500); // 500ms for long press
+    }).on('touchend', selector, function (e) {
+        clearTimeout(long_press_timer); // Clear the timer if touch ends or moves before it finishes
+    })
 
-            // double-click handling
-            let current_time = new Date().getTime();
-            let tap_length = current_time - last_tap;
-            if (tap_length < 300 && tap_length > 0) {
-                if (get_settings('double_tap')) {
-                    handle_interaction(e.currentTarget, e.pageX, e.pageY)
-                }
-            }
-            last_tap = current_time;
-        });
+    // double-tap handling
+    var last_tap = 0;
+    $(document).on('touchend', selector, function(e) {
 
-    } else {  // desktop
+        if (long_press_triggered) {  // Prevent carry-over clicks after long press
+            e.preventDefault();
+            e.stopPropagation();
+            long_press_triggered = false;
+        }
 
-        // Handle right-clicking
-        var last_right_click = 0;
-        $(document).on('contextmenu', selector, function(e) {
-            // double-right-click handling
-            let current_time = new Date().getTime();
-            let tap_length = current_time - last_right_click;
-
-            // double-right-click, don't prevent the default context menu
-            if (tap_length < 300 && tap_length > 0) {
-                $menu.hide()
-                debug("Double right-click")
-            } else {  // not a double-right-click. Prevent default and show menu.
-                e.preventDefault();
+        // double-click handling
+        let current_time = new Date().getTime();
+        let tap_length = current_time - last_tap;
+        if (tap_length < 300 && tap_length > 0) {
+            if (get_settings('double_tap')) {
                 handle_interaction(e.currentTarget, e.pageX, e.pageY)
             }
+        }
+        last_tap = current_time;
+    });
 
-            last_right_click = current_time;
-        });
+    // Handle right-clicking
+    var last_right_click = 0;
+    $(document).on('contextmenu', selector, function(e) {
+        // double-right-click handling
+        let current_time = new Date().getTime();
+        let tap_length = current_time - last_right_click;
 
-    }
+        // double-right-click, don't prevent the default context menu
+        if (tap_length < 300 && tap_length > 0) {
+            $menu.hide()
+            debug("Double right-click")
+        } else {  // not a double-right-click. Prevent default and show menu.
+            e.preventDefault();
+            handle_interaction(e.currentTarget, e.pageX, e.pageY)
+        }
+
+        last_right_click = current_time;
+    });
 
     // Clicking anywhere closes the menu
     $(document).on('click', function() {
