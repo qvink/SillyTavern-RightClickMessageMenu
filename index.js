@@ -373,12 +373,12 @@ function update_menu(message_div, edit=false) {
         $buttons = get_buttons(message_div);
     }
 
+    // Filter out buttons that are hidden - we won't put them on the menu
+    $buttons = $buttons.filter((i, el) => $(el).css('display') !== 'none')
+
     // Add those buttons to the context menu
     for (let button of $buttons) {
         let $button = $(button)
-
-        // Don't add the button if it's hidden on the message
-        if ($button.css('display') === 'none') continue
 
         let icon_classes = [...button.classList].filter(cls => cls.startsWith('fa-'))  // get any FA classes (the icon)
         let $icon_svg = $button.find("svg")  // icons might have been added using an svg
