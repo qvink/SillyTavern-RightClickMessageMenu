@@ -239,7 +239,7 @@ var $menu;
 const menu_id = "right_click_message_menu"
 const vertical_menu_class = "right_click_message_menu_vertical"
 const horizontal_menu_class = "right_click_message_menu_horizontal"
-const horizontal_item_class = "right_click_message_menu_item"
+const menu_item_class = "right_click_message_menu_item"
 const hide_buttons_class = "force_hidden"
 const button_name_map = {  // mapping for some default button names
     "Exclude message from prompts": "Exclude from prompts"
@@ -387,9 +387,9 @@ function update_menu(message_div, edit=false) {
         let $menu_item;
         if (menu_mode === 'vertical') {
             let {text, title} = parse_tooltip(tooltip)
-            $menu_item = $(`<div class="flex-container list-group-item ${horizontal_item_class}"><span title="${title}">${text}</span></div>`)
+            $menu_item = $(`<div class="flex-container list-group-item ${menu_item_class}"><span title="${title}">${text}</span></div>`)
         } else {  // horizontal
-            $menu_item = $(`<div class="mes_button" title="${tooltip}"></div>`)
+            $menu_item = $(`<div class="mes_button ${menu_item_class}" title="${tooltip}"></div>`)
         }
 
         if ($icon_svg.length) {

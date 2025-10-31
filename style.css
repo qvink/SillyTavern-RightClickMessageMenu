@@ -1,22 +1,25 @@
-
-.right_click_message_menu_vertical {
-    text-align: left;
-    padding: 15px;
-}
-
+/* horizontal menu */
 .right_click_message_menu_horizontal {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    padding: 0.4em;
+}
+.right_click_message_menu_horizontal .right_click_message_menu_item {
+    cursor: pointer;
+    padding: calc(1em - 18px);
 }
 
-.right_click_message_menu_item {
+/* vertical menu */
+.right_click_message_menu_vertical {
+    padding: 0.4em;
+}
+.right_click_message_menu_vertical .right_click_message_menu_item {
     cursor: pointer;
 }
-
 .right_click_message_menu_vertical .right_click_message_menu_item i {
     height: unset;
-    width: 30px;
+    width: 1.5em;
 }
 
 /*
